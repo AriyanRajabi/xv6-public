@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.js": "javascript",
+        "sleeplock.h": "c",
+        "spinlock.h": "c"
+    }
+}
