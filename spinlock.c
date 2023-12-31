@@ -8,74 +8,11 @@
 #include "mmu.h"
 #include "proc.h"
 #include "spinlock.h"
-#define MAX_QUEUE_SIZE 1024  // kalloc allocates 4096 bytes (1 page) which is 1024 ints
-#define EMPTY_PID 2147483647 // max int in c, because we want empty ones to be sorted to the end of the array (queue)
-
 void initlock(struct spinlock *lk, char *name)
 {
   lk->name = name;
   lk->locked = 0;
   lk->cpu = 0;
-  lk->pid_queue = (int *)kalloc(); // TODO: if returns 0 -> failed
-  for (int i = 0; i < MAX_QUEUE_SIZE; i++)
-  {
-    lk->pid_queue[i] = EMPTY_PID;
-  }
-  lk->is_initilized = 1;
-}
-
-void free_lock(struct spinlock *lk)
-{
-  kfree((char *)lk->pid_queue);
-}
-
-void add_to_queue(int *queue, int pid)
-{
-  int i;
-  for (i = 0; i < MAX_QUEUE_SIZE; i++)
-  {
-    if (queue[i] == EMPTY_PID)
-    {
-      queue[i] = pid;
-      break;
-    }
-  }
-}
-
-void remove_from_queue(int *queue, int pid)
-{
-  int i;
-  for (i = 0; i < MAX_QUEUE_SIZE; i++)
-  {
-    if (queue[i] == pid)
-    {
-      // Shift all elements to the left
-      for (int j = i; j < MAX_QUEUE_SIZE - 1; j++)
-      {
-        queue[j] = queue[j + 1];
-      }
-      // Set the last element to EMPTY_PID
-      queue[MAX_QUEUE_SIZE - 1] = EMPTY_PID;
-      break;
-    }
-  }
-}
-
-void sort_queue(int *queue) // using bubble sort, not very efficient, but useful
-{
-  int i, j, temp;
-  for (i = 0; i < MAX_QUEUE_SIZE; i++)
-  {
-    for (j = i + 1; j < MAX_QUEUE_SIZE; j++)
-    {
-      if (queue[i] > queue[j])
-      {
-        temp = queue[i];
-        queue[i] = queue[j];
-        queue[j] = temp;
-      }
-    }
-  }
 }
 
 // Acquire the lock.
@@ -126,58 +63,6 @@ void release(struct spinlock *lk)
   asm volatile("movl $0, %0" : "+m"(lk->locked) :);
 
   popcli();
-}
-
-void get_priority_lock(struct spinlock *lk, int pid) // NOTE: we've implemented priority lock as a different function
-{
-  // pushcli(); // disable interrupts to avoid deadlock.
-  if (holding(lk))
-    panic("get_priority_lock");
-
-  // Add current process to priority queue and sort
-  add_to_queue(lk->pid_queue, pid);
-  sort_queue(lk->pid_queue);
-  cprintf("lk->pid_queue[0] = %d, pid=%d\n", lk->pid_queue[0], pid);
-
-  // The xchg is atomic.
-  // stay in the loop until the current process is the highest priority
-  while (xchg(&lk->locked, 1) != 0 || lk->pid_queue[0] != pid)
-    ;
-
-  // Tell the C compiler and the processor to not move loads or stores
-  // past this point, to ensure that the critical section's memory
-  // references happen after the lock is acquired.
-  __sync_synchronize();
-
-  // Record info about lock acquisition for debugging.
-  // lk->cpu = mycpu();
-  getcallerpcs(&lk, lk->pcs);
-}
-
-void free_priority_lock(struct spinlock *lk, int pid)
-{
-  /*if (!holding(lk))
-    panic("release");*/
-
-  lk->pcs[0] = 0;
-  lk->cpu = 0;
-
-  // Remove current process from priority queue
-  remove_from_queue(lk->pid_queue, pid);
-
-  // Tell the C compiler and the processor to not move loads or stores
-  // past this point, to ensure that all the stores in the critical
-  // section are visible to other cores before the lock is released.
-  // Both the C compiler and the hardware may re-order loads and
-  // stores; __sync_synchronize() tells them both not to.
-  __sync_synchronize();
-
-  // Release the lock, equivalent to lk->locked = 0.
-  // This code can't use a C assignment, since it might
-  // not be atomic. A real OS would use C atomics here.
-  asm volatile("movl $0, %0" : "+m"(lk->locked) :);
-
-  // popcli();
 }
 
 // Record the current call stack in pcs[] by following the %ebp chain.

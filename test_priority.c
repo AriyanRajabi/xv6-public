@@ -1,13 +1,15 @@
 
 #include "types.h"
 #include "user.h"
-#define ITERATIONS 300000000000
+#define ITERATIONS 1000000000000
 
 void heavy_tesk()
 {
     long long int i = 0;
     while (i < ITERATIONS)
     {
+        i++;
+        i--;
         i++;
     }
 }

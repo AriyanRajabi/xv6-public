@@ -86,7 +86,6 @@ int sys_uptime(void)
   return xticks;
 }
 
-struct spinlock priority_lock;
 struct sleeplock sleep_priority_lock;
 
 void print_p_queue(int *queue)
