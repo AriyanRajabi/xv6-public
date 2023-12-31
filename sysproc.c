@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "sleeplock.h"
 
 int sys_fork(void)
 {
@@ -86,24 +87,47 @@ int sys_uptime(void)
 }
 
 struct spinlock priority_lock;
+struct sleeplock sleep_priority_lock;
+
+void print_p_queue(int *queue)
+{
+  int i = 0;
+  cprintf("queue: ");
+  while (queue[i] != EMPTY_PID)
+  {
+    cprintf("%d ", queue[i]);
+    i++;
+  }
+
+  cprintf("\n");
+}
 
 int sys_acquire_priority_lock(void)
 {
-  cprintf("in sys_acquire_priority_lock for %d\n", myproc()->pid);
-  if (priority_lock.is_initilized == 0)
-  {
-    cprintf("init priority_lock\n");
 
-    initlock(&priority_lock, "priority_lock");
+  if (sleep_priority_lock.is_initilized == 0)
+  {
+    init_p_lock(&sleep_priority_lock, "sleep_priority_lock");
   }
 
-  get_priority_lock(&priority_lock, myproc()->pid);
+  cprintf("asking to acquire lock: %d\n", myproc()->pid);
+  acquire_p_lock(&sleep_priority_lock, myproc()->pid);
+  cprintf("acquired lock: %d\n", myproc()->pid);
+  print_p_queue(sleep_priority_lock.pid_queue);
   return 0;
 }
 
 int sys_release_priority_lock(void)
 {
-  cprintf("releamakesed the lock: %d\n", myproc()->pid);
-  free_priority_lock(&priority_lock, myproc()->pid);
+  if (holding_p_lock(&sleep_priority_lock))
+  {
+    cprintf("released the lock: %d\n", myproc()->pid);
+    release_p_lock(&sleep_priority_lock, myproc()->pid);
+  }
+  else
+  {
+    cprintf("process %d does not hold the lock and cannot release it\n", myproc()->pid);
+  }
+
   return 0;
 }
