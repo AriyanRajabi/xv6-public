@@ -26,18 +26,7 @@ void heavy_tesk()
 
 int main(int argc, char *argv[])
 {
-    int pid = fork();
-    if (pid == 0)
-    {
-        heavy_tesk();
-        exit();
-    }
-    else if (pid < 0)
-    {
-        printf(1, "fork failed\n");
-        exit();
-    }
-    else
+    for (int i = 0; i < 10; i++)
     {
         int pid = fork();
         if (pid == 0)
@@ -45,24 +34,15 @@ int main(int argc, char *argv[])
             heavy_tesk();
             exit();
         }
-        else if (pid > 0)
-        {
-            int pid = fork();
-            if (pid == 0)
-            {
-                heavy_tesk();
-                exit();
-            }
-        }
-        else // pid < 0
+        else if (pid < 0)
         {
             printf(1, "fork failed\n");
             exit();
         }
-        // in parent
     }
-    wait();
-    wait();
-    wait();
+    for (int i = 0; i < 10; i++)
+    {
+        wait();
+    }
     exit();
 }
