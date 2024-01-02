@@ -13,7 +13,6 @@ extern char end[]; // first address after kernel loaded from ELF file
 
 void init_cpu_syscall_values(void)
 {
-
   // Allocate pointer
   int *shared_syscall_count = (int *)kalloc();
   int allocated = 0;
@@ -21,11 +20,6 @@ void init_cpu_syscall_values(void)
   {
     allocated = 1;
     *shared_syscall_count = 0;
-  }
-  else
-  {
-    // Handle allocation failure
-    // Print an error message or take appropriate action
   }
 
   for (int i = 0; i < NCPU; i++)
