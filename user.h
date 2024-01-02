@@ -41,3 +41,5 @@ int atoi(const char *);
 // lab4
 int acquire_priority_lock(void);
 int release_priority_lock(void);
+int get_syscall_count(void);
+int reset_syscall_count(void);

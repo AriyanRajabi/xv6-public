@@ -22,3 +22,5 @@
 #define SYS_close 21
 #define SYS_acquire_priority_lock 23
 #define SYS_release_priority_lock 24
+#define SYS_get_syscall_count 25
+#define SYS_reset_syscall_count 26

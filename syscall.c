@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "x86.h"
 #include "syscall.h"
+#include "spinlock.h"
 
 // User code makes a system call with INT T_SYSCALL.
 // System call number in %eax.
@@ -101,6 +102,8 @@ extern int sys_write(void);
 extern int sys_uptime(void);
 extern int sys_acquire_priority_lock(void);
 extern int sys_release_priority_lock(void);
+extern int sys_get_syscall_count(void);
+extern int sys_reset_syscall_count(void);
 
 static int (*syscalls[])(void) = {
     [SYS_fork] sys_fork,
@@ -126,7 +129,10 @@ static int (*syscalls[])(void) = {
     [SYS_close] sys_close,
     [SYS_acquire_priority_lock] sys_acquire_priority_lock,
     [SYS_release_priority_lock] sys_release_priority_lock,
+    [SYS_get_syscall_count] sys_get_syscall_count,
+    [SYS_reset_syscall_count] sys_reset_syscall_count,
 };
+struct spinlock shared_syscall_count_lock;
 
 void syscall(void)
 {
@@ -137,6 +143,13 @@ void syscall(void)
   if (num > 0 && num < NELEM(syscalls) && syscalls[num])
   {
     curproc->tf->eax = syscalls[num]();
+    cli(); // Disable interrupts
+    mycpu()->syscall_count++;
+    acquire(&shared_syscall_count_lock);
+    (*mycpu()->shared_syscall_count)++;
+    release(&shared_syscall_count_lock);
+
+    sti(); // Enable interrupts
   }
   else
   {

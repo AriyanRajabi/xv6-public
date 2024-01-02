@@ -130,3 +130,34 @@ int sys_release_priority_lock(void)
 
   return 0;
 }
+
+int sys_reset_syscall_count(void)
+{
+  cli();
+  for (int i = 0; i < ncpu; i++)
+  {
+    cpus[i].syscall_count = 0;
+  }
+  *mycpu()->shared_syscall_count = 0;
+  sti();
+  return 0;
+}
+
+int sys_get_syscall_count(void)
+{
+  int per_spu_sum = 0;
+  cli();
+  for (int i = 0; i < ncpu; i++)
+  {
+    per_spu_sum += cpus[i].syscall_count;
+  }
+  int shared_count = *mycpu()->shared_syscall_count;
+  int allocated = mycpu()->allocated;
+  sti();
+  cprintf("per cpu syscall count: %d\n", per_spu_sum);
+  cprintf("shared syscall count: %d\n", shared_count);
+  cprintf("number of cpus: %d\n", ncpu);
+  cprintf("is shared_syscall_count allocated: %d\n", allocated);
+
+  return 0;
+}
